@@ -1,0 +1,132 @@
+#!/data/data/io.neoterm/files/usr/bin/bash
+
+SU_LOCATIONS=("/system/bin/su" "/system/xbin/su" "/sbin/su" "/su/bin/su")
+CURRENT_GID="$(id -g)"
+CURRENT_UID="$(id -u)"
+CURRENT_PWD="$(pwd)"
+CURRENT_SHELL="$SHELL"
+SELF="$(basename $0)"
+VERSION="1"
+
+function check_self() {
+    case "$SELF" in
+        su | sudo ) ;;
+        * ) SELF="su" ;;
+    esac
+}
+
+function die() {
+    echo "$SELF: $@" 1>&2
+    exit 1
+}
+
+function check_su() {
+    local su="$1"
+    if [[ ! -x "$su" ]]; then
+        die "No su binary found, (searched ${SU_LOCATIONS[@]})"
+    fi
+}
+
+function print_version() {
+    echo "$SELF: su wrapper for NeoTerm, version $VERSION"
+    
+    local su="$(find_su_binary)"
+    check_su "$su"
+    echo "$su: su binary, version $($su --version)"
+}
+
+function find_su_binary() {
+    local su
+    for su in "${SU_LOCATIONS[@]}"; do
+        if [[ -x "$su" ]]; then
+            echo -n "$su"
+            return
+        fi
+    done
+}
+
+function generate_command() { 
+    local callTERM="$TERM"
+    local callHome="$HOME"
+    local callPATH="$PATH:/system/bin:/system/xbin:/system/vendor/bin:/vendor/bin"
+    local callLD_LIB="$LD_LIBRARY_PATH:/system/lib64:/system/lib:/system/vendor/lib:/vendor/lib"
+
+    echo "export TERM=$TERM;export PATH=$callPATH;export LD_LIBRARY_PATH=$callLD_LIB;PS1=\"root # \";cd \"$CURRENT_PWD\";$CURRENT_SHELL"
+
+}
+
+function call_su() {
+    local su="$(find_su_binary)"
+    check_su "$su"
+    local args="$@"
+    if "$su" --help 2>&1 | grep "preserve-environment" &>/dev/null; then
+        args="--preserve-environment $args"
+    fi
+
+    pre_call_su "$args"
+    $su $args
+    post_call_su "$args"
+}
+
+function pre_call_su() {
+    if [[ "$SU_DEBUG" == true ]]; then
+        echo "call su with args: $@" 1>&2
+    fi
+}
+
+function post_call_su() {
+    :
+}
+
+function main() {
+    ${SELF}_main "$@"
+}
+
+function su_help() {
+    echo "Usage: su [-] [-l|--login] [-c commands]"
+}
+
+function su_main() {
+    local arg
+    local commands
+    local login
+
+    while [[ "$#" > 0 ]]; do
+        arg="$1"; shift
+        case "$arg" in
+            "--help" ) su_help; exit 0 ;;
+            "-c" | "--command" ) commands="$@"; break ;;
+            "-" | "-l" | "--login" ) login=true ;;
+            "-v" | "--version" ) print_version; exit 0 ;;
+        esac
+    done
+
+    local args
+    if [[ "$commands" != "" ]]; then
+        args+=" -c $commands"
+    else
+        args+=" -c $(generate_command)"
+    fi
+
+    if [[ "$login" == true ]]; then
+        args+=" -"
+    fi
+    call_su "$args"
+}
+
+function sudo_help() {
+    echo "Usage: sudo <commands> [args]"
+}
+
+function sudo_main() {
+    if [[ "$#" == 0 ]]; then
+        sudo_help
+        exit 0
+    fi
+    local args="$@"
+    su_main -c $args
+}
+
+check_self
+main "$@"
+
