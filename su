@@ -6,7 +6,7 @@ CURRENT_UID="$(id -u)"
 CURRENT_PWD="$(pwd)"
 CURRENT_SHELL="$SHELL"
 SELF="$(basename $0)"
-VERSION="1"
+VERSION="1.1"
 
 function check_self() {
     case "$SELF" in
@@ -51,7 +51,7 @@ function generate_command() {
     local callPATH="$PATH:/system/bin:/system/xbin:/system/vendor/bin:/vendor/bin"
     local callLD_LIB="$LD_LIBRARY_PATH:/system/lib64:/system/lib:/system/vendor/lib:/vendor/lib"
 
-    echo "export TERM=$TERM;export PATH=$callPATH;export LD_LIBRARY_PATH=$callLD_LIB;PS1=\"root # \";cd \"$CURRENT_PWD\";$CURRENT_SHELL"
+    echo "export TERM=$TERM;export PATH=$callPATH;export LD_LIBRARY_PATH=$callLD_LIB;PS1=\"root # \";cd \"$CURRENT_PWD\""
 
 }
 
@@ -103,9 +103,9 @@ function su_main() {
 
     local args
     if [[ "$commands" != "" ]]; then
-        args+=" -c $commands"
+        args+=" -c $(generate_command);$commands"
     else
-        args+=" -c $(generate_command)"
+        args+=" -c $(generate_command);$CURRENT_SHELL"
     fi
 
     if [[ "$login" == true ]]; then
