@@ -6,7 +6,7 @@ CURRENT_UID="$(id -u)"
 CURRENT_PWD="$(pwd)"
 CURRENT_SHELL="$SHELL"
 SELF="$(basename $0)"
-VERSION="1.1"
+VERSION="1.2"
 
 function check_self() {
     case "$SELF" in
@@ -49,7 +49,7 @@ function generate_command() {
     local callTERM="$TERM"
     local callHome="$HOME"
     local callPATH="$PATH:/system/bin:/system/xbin:/system/vendor/bin:/vendor/bin"
-    local callLD_LIB="$LD_LIBRARY_PATH:/system/lib64:/system/lib:/system/vendor/lib:/vendor/lib"
+    local callLD_LIB="$LD_LIBRARY_PATH:/system/lib64:/system/lib:/system/vendor/lib64:/system/vendor/lib:/vendor/lib64:/vendor/lib"
 
     echo "export TERM=$TERM;export PATH=$callPATH;export LD_LIBRARY_PATH=$callLD_LIB;PS1=\"root # \";cd \"$CURRENT_PWD\""
 
