@@ -1,12 +1,12 @@
 #!/data/data/io.neoterm/files/usr/bin/bash
 
-SU_LOCATIONS=("/system/bin/su" "/system/xbin/su" "/sbin/su" "/su/bin/su")
+SU_LOCATIONS=("/system/bin/su" "/system/xbin/su" "/sbin/su" "/su/bin/su" "/magisk/.core/bin/su")
 CURRENT_GID="$(id -g)"
 CURRENT_UID="$(id -u)"
 CURRENT_PWD="$(pwd)"
 CURRENT_SHELL="$SHELL"
 SELF="$(basename $0)"
-VERSION="1.2"
+VERSION="1.3"
 
 function check_self() {
     case "$SELF" in
