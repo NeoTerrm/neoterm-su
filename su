@@ -1,12 +1,14 @@
 #!/data/data/io.neoterm/files/usr/bin/bash
 
 SU_LOCATIONS=("/system/bin/su" "/system/xbin/su" "/sbin/su" "/su/bin/su" "/magisk/.core/bin/su")
+
 CURRENT_GID="$(id -g)"
 CURRENT_UID="$(id -u)"
 CURRENT_PWD="$(pwd)"
 CURRENT_SHELL="$SHELL"
 SELF="$(basename $0)"
-VERSION="1.3"
+TTY_BACKUP=""
+VERSION="1.4"
 
 function check_self() {
     case "$SELF" in
@@ -32,7 +34,7 @@ function print_version() {
     
     local su="$(find_su_binary)"
     check_su "$su"
-    echo "$su: su binary, version $($su --version)"
+    echo "$su: su binary, version $(call_su --version)"
 }
 
 function find_su_binary() {
@@ -51,7 +53,7 @@ function generate_command() {
     local callPATH="$PATH:/system/bin:/system/xbin:/system/vendor/bin:/vendor/bin"
     local callLD_LIB="$LD_LIBRARY_PATH:/system/lib64:/system/lib:/system/vendor/lib64:/system/vendor/lib:/vendor/lib64:/vendor/lib"
 
-    echo "export TERM=$TERM;export PATH=$callPATH;export LD_LIBRARY_PATH=$callLD_LIB;PS1=\"root # \";cd \"$CURRENT_PWD\""
+    echo "export TERM=$TERM;export PATH=$callPATH;export LD_LIBRARY_PATH=$callLD_LIB;cd \"$CURRENT_PWD\""
 
 }
 
@@ -64,7 +66,14 @@ function call_su() {
     fi
 
     pre_call_su "$args"
-    $su $args
+    
+    # Clear NeoTerm libs
+    # Some su may crash if we do not do this
+    # eg. MagiskSU
+    env \
+        PATH="/system/bin:/system/xbin:/system/vendor/bin:/vendor/bin" \
+        LD_LIBRARY_PATH=/system/lib64:/system/lib:/system/vendor/lib64:/system/vendor/lib:/vendor/lib64:/vendor/lib \
+        $su $args
     post_call_su "$args"
 }
 
@@ -72,10 +81,13 @@ function pre_call_su() {
     if [[ "$SU_DEBUG" == true ]]; then
         echo "call su with args: $@" 1>&2
     fi
+    
+    # Save tty status
+    TTY_BACKUP="$(stty -g)"
 }
 
 function post_call_su() {
-    :
+    stty "$TTY_BACKUP"
 }
 
 function main() {
