@@ -8,7 +8,7 @@ CURRENT_PWD="$(pwd)"
 CURRENT_SHELL="$SHELL"
 SELF="$(basename $0)"
 TTY_BACKUP=""
-VERSION="1.4"
+VERSION="1.5"
 
 function check_self() {
     case "$SELF" in
@@ -60,12 +60,15 @@ function generate_command() {
 function call_su() {
     local su="$(find_su_binary)"
     check_su "$su"
-    local args="$@"
+    local commands="$@"
+    local args=
     if "$su" --help 2>&1 | grep "preserve-environment" &>/dev/null; then
-        args="--preserve-environment $args"
+        args="--preserve-environment -c"
+    else
+        args="-c"
     fi
 
-    pre_call_su "$args"
+    pre_call_su
     
     # Clear NeoTerm libs
     # Some su may crash if we do not do this
@@ -73,15 +76,11 @@ function call_su() {
     env \
         PATH="/system/bin:/system/xbin:/system/vendor/bin:/vendor/bin" \
         LD_LIBRARY_PATH=/system/lib64:/system/lib:/system/vendor/lib64:/system/vendor/lib:/vendor/lib64:/vendor/lib \
-        $su $args
-    post_call_su "$args"
+        $su $args "$commands"
+    post_call_su
 }
 
 function pre_call_su() {
-    if [[ "$SU_DEBUG" == true ]]; then
-        echo "call su with args: $@" 1>&2
-    fi
-    
     # Save tty status
     TTY_BACKUP="$(stty -g)"
 }
@@ -115,9 +114,9 @@ function su_main() {
 
     local args
     if [[ "$commands" != "" ]]; then
-        args+=" -c $(generate_command);$commands"
+        args+="$(generate_command);$commands"
     else
-        args+=" -c $(generate_command);$CURRENT_SHELL"
+        args+="$(generate_command);$CURRENT_SHELL"
     fi
 
     if [[ "$login" == true ]]; then
@@ -136,9 +135,10 @@ function sudo_main() {
         exit 0
     fi
     local args="$@"
-    su_main -c $args
+    su_main -c "$args"
 }
 
 check_self
 main "$@"
+
 
